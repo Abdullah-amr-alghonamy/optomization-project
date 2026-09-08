@@ -1,0 +1,1 @@
+input('input the number of variables: ')
