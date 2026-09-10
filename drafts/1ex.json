@@ -1,0 +1,54 @@
+{
+    "name": "1ex",
+    "response_name": "piocainin",
+    "variable_table": [
+        {
+            "variable_name": "hcl",
+            "high_level": 7.0,
+            "low_level": 5.0
+        },
+        {
+            "variable_name": "nacl",
+            "high_level": 8.0,
+            "low_level": 6.0
+        },
+        {
+            "variable_name": "temp",
+            "high_level": 55.0,
+            "low_level": 50.0
+        }
+    ],
+    "design": [
+        {
+            "Run": 1,
+            "hcl": 1,
+            "nacl": -1,
+            "temp": 1
+        },
+        {
+            "Run": 2,
+            "hcl": -1,
+            "nacl": 1,
+            "temp": 1
+        },
+        {
+            "Run": 3,
+            "hcl": 1,
+            "nacl": 1,
+            "temp": -1
+        },
+        {
+            "Run": 4,
+            "hcl": -1,
+            "nacl": -1,
+            "temp": -1
+        }
+    ],
+    "responses": [
+        100.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "stage": "screening"
+}

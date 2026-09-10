@@ -1,39 +1,66 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
+from calculations.draft import list_drafts, load_draft
 
 
 st.set_page_config(
     page_title="DOE Optimizer",
+    page_icon="🧪",
     layout="centered"
 )
 
-# Default page
-if "page" not in st.session_state:
-    st.session_state.page = "welcome"
 
-# Welcome Page
+st.title("DOE Optimizer")
 
-if st.session_state.page == "welcome":
+st.subheader("Design of Experiments & Optimization")
 
-    st.title("DOE Optimizer")
+st.write(
+    """
+    A scientific tool for experimental design, statistical analysis,
+    and optimization.
+    """
+)
 
-    st.subheader("Design of Experiments & Optimization")
+st.divider()
 
-    st.write(
-        """
-        A scientific tool for experimental design, statistical analysis,
-        and optimization.
-        """
+
+# New Optimization
+if st.button(
+    "NEW OPTIMIZATION",
+    use_container_width=True
+):
+    st.switch_page("pages/set_up.py")
+
+
+st.divider()
+
+
+# Load Existing Draft
+st.subheader("Load Existing Draft")
+
+drafts = list_drafts()
+
+if drafts:
+
+    selected_draft = st.selectbox(
+        "Select an experiment",
+        drafts
     )
 
-    st.write("")
-
     if st.button(
-        "START OPTIMIZATION",
-        use_container_width=True
-    ):
-        st.switch_page("pages/set_up.py")
-        st.rerun()
+    "LOAD DRAFT",
+    use_container_width=True):
+        data = load_draft(selected_draft)
 
+        st.session_state["draft_data"] = data
+
+        st.session_state["variable_table"] = pd.DataFrame(data["variable_table"])
+
+        st.session_state["response_name"] = data["response_name"]
+
+        if data["stage"] == "screening":
+            st.switch_page("pages/screening.py")
+else:
+
+    st.info("No saved experiments found.")

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from calculations.plackett_burman import generate_pbd
+from calculations.draft import save_draft
 
 
 st.set_page_config(
@@ -26,7 +27,7 @@ factor_names = variable_table["variable_name"].tolist()
 
 
 # Title
-st.title("🔬 Screening Experiment")
+st.title("Screening Experiment")
 
 st.write(
     "Plackett–Burman Design for factor screening."
@@ -46,7 +47,9 @@ design = design.rename(
         for i in range(number_of_factors)
     }
 )
-
+# dsiplay variables
+st.table(variable_table) 
+st.divider()
 
 # Display design
 st.subheader("Plackett–Burman Design")
@@ -56,6 +59,9 @@ st.dataframe(
     use_container_width=True,
     hide_index=True
 )
+
+st.divider()
+
 
 st.divider()
 
@@ -89,5 +95,43 @@ if st.button(
 
     st.session_state["pbd_results"] = results
 
-    st.success("Responses saved successfully!")
+    st.switch_page("pages/pbd_analysis.py")
 
+
+# saving Data
+
+
+
+st.subheader("Save Experiment")
+
+draft_name = st.text_input(
+    "Experiment name",
+    placeholder="e.g. Enzyme Optimization"
+)
+
+# saving button
+
+st.divider()
+if st.button("Save Draft", use_container_width=True):
+
+    if not draft_name:
+        st.warning("Please enter an experiment name.")
+
+    else:
+        draft_data = {
+            "name": draft_name,
+            "response_name": response_name,
+            "variable_table": variable_table.to_dict(orient="records"),
+            "design": design.to_dict(orient="records"),
+            "responses": response_values,
+            "stage": "screening"
+        }
+
+        file_path = save_draft(
+            draft_name,
+            draft_data
+        )
+
+        st.success(
+            f"Draft saved successfully: {file_path.name}"
+        )
