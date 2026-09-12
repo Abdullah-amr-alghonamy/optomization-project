@@ -3,41 +3,51 @@ import pandas as pd
 import statsmodels.api as sm
 
 
-# PBD Analysis
 def analyze_pbd(df, response_name, factor_names):
 
-    # -------------------------
-    # 1) Regression
-    # -------------------------
+    
+    # Prepare data
+    
+
     X = df[factor_names]
     y = df[response_name]
 
-    X = sm.add_constant(X)
+    # Add intercept
+    X_model = sm.add_constant(X)
 
-    model = sm.OLS(y, X).fit()
+    # Fit linear model
+    model = sm.OLS(y, X_model).fit()
 
-    # -------------------------
-    # 2) Check residual degrees
-    # -------------------------
+    
+    # Regression Statistics
+    
+
     df_resid = model.df_resid
     saturated = df_resid <= 0
 
-    # -------------------------
-    # 3) Summary Output
-    # -------------------------
     multiple_r = np.sqrt(model.rsquared)
 
-    summary = {
-        "Multiple R": multiple_r,
-        "R Square": model.rsquared,
-        "Adjusted R Square": None if saturated else model.rsquared_adj,
-        "Standard Error": None if saturated else np.sqrt(model.mse_resid),
-        "Observations": int(model.nobs)
-    }
+    summary = pd.DataFrame({
+        "Statistic": [
+            "Multiple R",
+            "R Square",
+            "Adjusted R Square",
+            "Standard Error",
+            "Observations"
+        ],
+        "Value": [
+            multiple_r,
+            model.rsquared,
+            None if saturated else model.rsquared_adj,
+            None if saturated else np.sqrt(model.mse_resid),
+            int(model.nobs)
+        ]
+    }).round(5)
 
-    # -------------------------
-    # 4) ANOVA
-    # -------------------------
+    
+    # ANOVA
+    
+
     df_reg = model.df_model
     df_total = df_reg + df_resid
 
@@ -48,19 +58,38 @@ def analyze_pbd(df, response_name, factor_names):
     ms_reg = ss_reg / df_reg
 
     if saturated:
+
         ms_resid = None
         f_stat = None
         significance_f = None
+
     else:
+
         ms_resid = ss_resid / df_resid
         f_stat = model.fvalue
         significance_f = model.f_pvalue
 
-    anova_table = pd.DataFrame({
-        "df": [df_reg, df_resid, df_total],
-        "SS": [ss_reg, ss_resid, ss_total],
-        "MS": [ms_reg, ms_resid, None],
-        "F": [f_stat, None, None],
+    anova = pd.DataFrame({
+        "df": [
+            df_reg,
+            df_resid,
+            df_total
+        ],
+        "SS": [
+            ss_reg,
+            ss_resid,
+            ss_total
+        ],
+        "MS": [
+            ms_reg,
+            ms_resid,
+            None
+        ],
+        "F": [
+            f_stat,
+            None,
+            None
+        ],
         "Significance F": [
             significance_f,
             None,
@@ -72,13 +101,14 @@ def analyze_pbd(df, response_name, factor_names):
         "Total"
     ]).round(5)
 
-    # -------------------------
-    # 5) Coefficients
-    # -------------------------
+    
+    # Coefficients
+    
+
     if saturated:
 
-        results_table = pd.DataFrame({
-            "Coefficients": model.params,
+        coefficients = pd.DataFrame({
+            "Coefficient": model.params,
             "Standard Error": None,
             "t Stat": None,
             "P-value": None,
@@ -88,46 +118,99 @@ def analyze_pbd(df, response_name, factor_names):
 
     else:
 
-        results_table = pd.DataFrame({
-            "Coefficients": model.params,
+        confidence_intervals = model.conf_int()
+
+        coefficients = pd.DataFrame({
+            "Coefficient": model.params,
             "Standard Error": model.bse,
             "t Stat": model.tvalues,
             "P-value": model.pvalues,
-            "Lower 95%": model.conf_int()[0],
-            "Upper 95%": model.conf_int()[1]
+            "Lower 95%": confidence_intervals[0],
+            "Upper 95%": confidence_intervals[1]
         })
 
-    results_table = results_table.round(5)
+    coefficients = coefficients.round(5)
 
-    # -------------------------
-    # 6) Factor Effects
-    # -------------------------
-    effects = model.params[factor_names] * 2
+    
+    # Main Effects
+    
 
-    effect_table = pd.DataFrame({
-        "Effect": effects,
-        "Absolute Effect": effects.abs()
-    })
+    main_effects = []
 
-    effect_table["Rank"] = (
-        effect_table["Absolute Effect"]
-        .rank(method="min", ascending=False)
-        .astype(int)
+    for factor in factor_names:
+
+        coefficient = model.params[factor]
+
+        # Main Effect = 2 × coefficient
+        effect = 2 * coefficient
+
+        if saturated:
+            confidence_level = None
+
+        else:
+            p_value = model.pvalues[factor]
+
+            confidence_level = (1 - p_value) * 100
+
+        main_effects.append({
+            "Factor": factor,
+            "Main Effect": effect,
+            "Confidence Level": confidence_level
+        })
+
+    main_effects_table = pd.DataFrame(
+        main_effects
     )
 
-    effect_table = effect_table.sort_values(
+    main_effects_table["Main Effect"] = (
+        main_effects_table["Main Effect"].round(5)
+    )
+
+    main_effects_table["Confidence Level"] = (
+        main_effects_table["Confidence Level"].round(5)
+    )
+
+    
+    # Top 3 Factors
+    
+    top_3 = (
+        main_effects_table
+        .head(3)["Factor"]
+        .tolist()
+    )
+
+    
+    # Pareto Data
+    
+
+    pareto = main_effects_table.copy()
+
+    pareto["Absolute Effect"] = (
+        pareto["Main Effect"].abs()
+    )
+
+    pareto = pareto.sort_values(
         "Absolute Effect",
         ascending=False
-    ).round(5)
+    ).reset_index(drop=True)
 
-    # -------------------------
-    # 7) Return Results
-    # -------------------------
+    pareto["Cumulative Percentage"] = (
+        pareto["Absolute Effect"].cumsum()
+        / pareto["Absolute Effect"].sum()
+        * 100
+    )
+
+    
+    # Return Results
+    
+
     return {
         "model": model,
         "summary": summary,
-        "anova": anova_table,
-        "coefficients": results_table,
-        "effects": effect_table,
+        "anova": anova,
+        "coefficients": coefficients,
+        "main_effects": main_effects_table,
+        "top_3": top_3,
+        "pareto": pareto,
         "saturated": saturated
     }

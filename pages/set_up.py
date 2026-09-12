@@ -15,7 +15,7 @@ st.write("Enter the variables and their experimental ranges.")
 number_of_variables = st.number_input(
     "Number of variables",
     min_value=1,
-    max_value=50,
+    max_value=24,
     value=3,
     step=1
 )
