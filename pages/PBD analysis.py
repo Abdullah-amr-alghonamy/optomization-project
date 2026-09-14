@@ -205,4 +205,4 @@ if st.button(
     type="primary",
     use_container_width=True
 ):
-    st.switch_page("pages/bbd.py")
+    st.switch_page("pages/BBD.py")

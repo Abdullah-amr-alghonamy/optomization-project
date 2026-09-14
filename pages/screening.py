@@ -95,7 +95,7 @@ if st.button(
 
     st.session_state["pbd_results"] = results
 
-    st.switch_page("pages/pbd_analysis.py")
+    st.switch_page("pages/PBD analysis.py")
 
 
 # saving Data

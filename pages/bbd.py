@@ -145,7 +145,16 @@ if st.button(
     use_container_width=True
 ):
 
-    # Keep coded values for RSM calculations
+    # Attach the entered response values to the design
     bbd_results = design.copy()
+    bbd_results[response_name] = response_values
 
-    bbd_results
+    # Also keep actual (uncoded) values with responses if needed
+    actual_results = actual_design.copy()
+    actual_results[response_name] = response_values
+
+    # Save to session_state so the RSM page can read them
+    st.session_state["bbd_results"] = bbd_results
+    st.session_state["actual_bbd_results"] = actual_results
+
+    st.switch_page("pages/RSM analysis.py")
