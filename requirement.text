@@ -6,4 +6,4 @@ statsmodels
 matplotlib
 plotly
 reportlab==4.2.2
-pyDOE3
+pyDOE3==1.6.2
