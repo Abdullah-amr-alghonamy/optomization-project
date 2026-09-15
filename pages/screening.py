@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from calculations.plackett_burman import generate_pbd
-from calculations.draft import save_draft
+from database.projects import save_project
 
 
 st.set_page_config(
@@ -12,21 +12,73 @@ st.set_page_config(
 )
 
 
+# ============================================================
+# LOAD PROJECT DATA
+# ============================================================
+
+# Normal flow:
+# Setup → Screening
+#
+# Resume flow:
+# Home → Resume → Screening
+
+if "variable_table" not in st.session_state:
+
+    project_data = st.session_state.get("project_data", {})
+
+    if "variable_table" in project_data:
+
+        st.session_state["variable_table"] = pd.DataFrame(
+            project_data["variable_table"]
+        )
+
+    if "response_name" in project_data:
+
+        st.session_state["response_name"] = project_data[
+            "response_name"
+        ]
+
+
+# Check that setup data exists
+if (
+    "variable_table" not in st.session_state
+    or "response_name" not in st.session_state
+):
+
+    st.error(
+        "Setup data not found. Please return to the Setup page."
+    )
+
+    if st.button("← Back to Home"):
+        st.switch_page("Home.py")
+
+    st.stop()
+
+
 # Get setup data
 variable_table = st.session_state["variable_table"]
 
 response_name = st.session_state["response_name"]
 
 
-# Number of factors
+# ============================================================
+# NUMBER OF FACTORS
+# ============================================================
+
 number_of_factors = len(variable_table)
 
 
-# Factor names
+# ============================================================
+# FACTOR NAMES
+# ============================================================
+
 factor_names = variable_table["variable_name"].tolist()
 
 
-# Title
+# ============================================================
+# TITLE
+# ============================================================
+
 st.title("Screening Experiment")
 
 st.write(
@@ -34,7 +86,10 @@ st.write(
 )
 
 
-# Generate PBD
+# ============================================================
+# GENERATE PBD
+# ============================================================
+
 design = generate_pbd(number_of_factors)
 
 
@@ -47,11 +102,23 @@ design = design.rename(
         for i in range(number_of_factors)
     }
 )
-# dsiplay variables
-st.table(variable_table) 
+
+
+# ============================================================
+# DISPLAY VARIABLES
+# ============================================================
+
+st.subheader("Variables")
+
+st.table(variable_table)
+
 st.divider()
 
-# Display design
+
+# ============================================================
+# DISPLAY DESIGN
+# ============================================================
+
 st.subheader("Plackett–Burman Design")
 
 st.dataframe(
@@ -63,13 +130,16 @@ st.dataframe(
 st.divider()
 
 
-st.divider()
+# ============================================================
+# ENTER RESPONSE VALUES
+# ============================================================
 
 st.subheader(f"Enter {response_name}")
 
 st.write(
     "Enter the experimental response obtained for each run."
 )
+
 
 response_values = []
 
@@ -83,55 +153,51 @@ for run in design["Run"]:
 
     response_values.append(response)
 
+
+# ============================================================
+# CONTINUE TO ANALYSIS
+# ============================================================
+
 if st.button(
     "Continue to Analysis →",
     type="primary",
     use_container_width=True
 ):
 
+    # Create final PBD results
     results = design.copy()
 
     results[response_name] = response_values
 
+    # Save results in session state
     st.session_state["pbd_results"] = results
 
+    # --------------------------------------------------------
+    # Save project data
+    # --------------------------------------------------------
+    project_data = {
+        "variable_table": variable_table.to_dict(
+            orient="records"
+        ),
+        "response_name": response_name,
+        "design": design.to_dict(
+            orient="records"
+        ),
+        "responses": response_values,
+        "pbd_results": results.to_dict(
+            orient="records"
+        )
+    }
+
+    save_project(
+        user_id=st.session_state["user"]["id"],
+        project_id=st.session_state["project_id"],
+        data=project_data,
+        current_stage="pbd_analysis"
+    )
+
+    # Update current stage
+    st.session_state["current_stage"] = "pbd_analysis"
+
+    # Go to PBD Analysis
     st.switch_page("pages/PBD analysis.py")
-
-
-# saving Data
-
-
-
-st.subheader("Save Experiment")
-
-draft_name = st.text_input(
-    "Experiment name",
-    placeholder="e.g. Enzyme Optimization"
-)
-
-# saving button
-
-st.divider()
-if st.button("Save Draft", use_container_width=True):
-
-    if not draft_name:
-        st.warning("Please enter an experiment name.")
-
-    else:
-        draft_data = {
-            "name": draft_name,
-            "response_name": response_name,
-            "variable_table": variable_table.to_dict(orient="records"),
-            "design": design.to_dict(orient="records"),
-            "responses": response_values,
-            "stage": "screening"
-        }
-
-        file_path = save_draft(
-            draft_name,
-            draft_data
-        )
-
-        st.success(
-            f"Draft saved successfully: {file_path.name}"
-        )

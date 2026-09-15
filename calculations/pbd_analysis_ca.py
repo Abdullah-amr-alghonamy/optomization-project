@@ -166,9 +166,10 @@ def analyze_pbd(df, response_name, factor_names):
         main_effects_table["Main Effect"].round(5)
     )
 
-    main_effects_table["Confidence Level"] = (
-        main_effects_table["Confidence Level"].round(5)
-    )
+    main_effects_table["Confidence Level"] = pd.to_numeric(
+    main_effects_table["Confidence Level"],
+    errors="coerce"
+).round(5)
 
     
     # Top 3 Factors

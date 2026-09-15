@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 
+from database.projects import save_project
+
 
 st.set_page_config(
     page_title="Setup - DOE Optimizer",
@@ -11,6 +13,10 @@ st.set_page_config(
 st.title("Experiment Setup")
 st.write("Enter the variables and their experimental ranges.")
 
+
+# ============================================================
+# NUMBER OF VARIABLES
+# ============================================================
 
 number_of_variables = st.number_input(
     "Number of variables",
@@ -23,7 +29,10 @@ number_of_variables = st.number_input(
 
 st.divider()
 
-# Variable inputs
+
+# ============================================================
+# VARIABLE INFORMATION
+# ============================================================
 
 st.subheader("Variable Information")
 
@@ -64,9 +73,13 @@ for n in range(number_of_variables):
 
 st.divider()
 
-# Response name
+
+# ============================================================
+# RESPONSE NAME
+# ============================================================
 
 st.subheader("Response")
+
 
 response_name = st.text_input(
     "Response name",
@@ -76,16 +89,43 @@ response_name = st.text_input(
 
 st.divider()
 
-# Continue button
+
+# ============================================================
+# CONTINUE
+# ============================================================
 
 if st.button(
     "Continue →",
     type="primary",
     use_container_width=True
 ):
+
     df_variable_table = pd.DataFrame(variable_table)
 
+    # Save data in session state
     st.session_state["variable_table"] = df_variable_table
     st.session_state["response_name"] = response_name
 
+    # --------------------------------------------------------
+    # Save project data to database
+    # --------------------------------------------------------
+
+    project_data = {
+        "variable_table": df_variable_table.to_dict(
+            orient="records"
+        ),
+        "response_name": response_name
+    }
+
+    save_project(
+        user_id=st.session_state["user"]["id"],
+        project_id=st.session_state["project_id"],
+        data=project_data,
+        current_stage="screening"
+    )
+
+    # Update current stage in session
+    st.session_state["current_stage"] = "screening"
+
+    # Go to Screening
     st.switch_page("pages/screening.py")
