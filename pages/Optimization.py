@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import plotly.graph_objects as go
-
+from reports.pdf_report import generate_pdf_report
 from scipy.optimize import minimize
 
 
@@ -1302,6 +1302,70 @@ st.divider()
 # =========================================================
 # Navigation
 # =========================================================
+
+# =========================================================
+# PDF REPORT
+# =========================================================
+
+st.divider()
+
+st.subheader("📄 Project Report")
+
+if st.button(
+    "Generate PDF Report",
+    type="primary",
+    use_container_width=True
+):
+
+    pdf_data = generate_pdf_report(
+        project_name=st.session_state.get(
+            "project_name",
+            "DOE Optimization Project"
+        ),
+
+        response_name=response_name,
+
+        variable_table=variable_table,
+
+        factor_names=factor_names,
+
+        # RSM MODEL
+        equation=analysis.get("equation"),
+
+        rsm_analysis=analysis,
+
+        # RSM EXPERIMENTAL RESULTS
+        experimental_results=(
+            actual_results
+            if "actual_results" in locals()
+            else None
+        ),
+
+        # MAXIMUM RESPONSE
+        max_predicted=max_predicted,
+        max_actual=max_actual,
+        max_coded=max_coded,
+
+        # MINIMUM RESPONSE
+        min_predicted=min_predicted,
+        min_actual=min_actual,
+        min_coded=min_coded,
+
+        # PBD DATA
+        pbd_data=st.session_state.get(
+            "project_data",
+            {}
+        )
+    )
+
+    st.download_button(
+        label="⬇️ Download PDF Report",
+        data=pdf_data,
+        file_name=(f"{st.session_state.get('project_name','DOE_Optimization')}.pdf"),
+        mime="application/pdf",
+        use_container_width=True
+    )
+
 
 if st.button(
     "← Back to RSM Analysis",
