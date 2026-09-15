@@ -393,5 +393,6 @@ if st.button(
     # --------------------------------------------------------
 
     st.switch_page(
-        "pages/BBD.py"
+        "pages/bbd.py"
     )
+    #
